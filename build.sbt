@@ -11,6 +11,21 @@ scalaVersion := "2.13.1"
 libraryDependencies += "org.scalafx" %% "scalafx" % "12.0.2-R18"
 resolvers += Resolver.sonatypeRepo("snapshots")
 
+lazy val Http4sVersion =  "0.21.1"
+lazy val ZioCatsVersion =  "2.0.0.0-RC12"
+lazy val PureConfigVersion = "0.12.2"
+
+// Server dependencies
+libraryDependencies ++= Seq(
+  "org.http4s"      %% "http4s-blaze-server" % Http4sVersion,
+  "org.http4s"      %% "http4s-blaze-client" % Http4sVersion,
+  "org.http4s"      %% "http4s-circe"        % Http4sVersion,
+  "org.http4s"      %% "http4s-dsl"          % Http4sVersion,
+  "dev.zio"         %% "zio-interop-cats"    % ZioCatsVersion,
+  "com.github.pureconfig" %% "pureconfig"             % PureConfigVersion,
+  "com.github.pureconfig" %% "pureconfig-cats-effect" % PureConfigVersion,
+)
+
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xcheckinit", "-encoding", "utf8", "-feature")
 
 // Fork a new JVM for 'run' and 'test:run', to avoid JavaFX double initialization problems
