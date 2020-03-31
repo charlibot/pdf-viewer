@@ -1,5 +1,5 @@
 // Name of the project
-name := "ScalaFX Hello World"
+name := "pdf-fx-viewer"
 
 // Project version
 version := "12.0.2-R18"
