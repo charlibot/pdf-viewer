@@ -1,5 +1,7 @@
-scalafx-hello-world
+pdf-fx-viewer
 ===================
+
+https://github.com/ThoughtWorksInc/Binding.scala might be helpful.
 
 Simple example of a ScalaFX application using [Simple-Build-Tool](http://www.scala-sbt.org/) (SBT).
 
