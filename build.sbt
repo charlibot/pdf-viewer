@@ -14,6 +14,7 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 lazy val Http4sVersion =  "0.21.1"
 lazy val ZioCatsVersion =  "2.0.0.0-RC12"
 lazy val PureConfigVersion = "0.12.2"
+lazy val LogbackVersion = "1.2.3"
 
 // Server dependencies
 libraryDependencies ++= Seq(
@@ -24,6 +25,7 @@ libraryDependencies ++= Seq(
   "dev.zio"         %% "zio-interop-cats"    % ZioCatsVersion,
   "com.github.pureconfig" %% "pureconfig"             % PureConfigVersion,
   "com.github.pureconfig" %% "pureconfig-cats-effect" % PureConfigVersion,
+  "ch.qos.logback" % "logback-classic" % LogbackVersion,
 )
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xcheckinit", "-encoding", "utf8", "-feature")
@@ -44,3 +46,5 @@ lazy val javaFXModules = Seq("base", "controls", "fxml", "graphics", "media", "s
 libraryDependencies ++= javaFXModules.map( m=>
   "org.openjfx" % s"javafx-$m" % "12.0.2" classifier osName
 )
+
+addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
