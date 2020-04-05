@@ -18,33 +18,37 @@ object Ui {
   val stage = new PrimaryStage {
     //        initStyle(StageStyle.Unified)
     title = "ScalaFX Hello World"
+    maximized = true
+
     scene = new Scene {
-      fill = Color.rgb(38, 38, 38)
-      content = new HBox {
-        padding = Insets(50, 80, 50, 80)
-        children = Seq(
-          new Text {
-            text <== textProperty
-            style = "-fx-font: normal bold 100pt sans-serif"
-            fill = new LinearGradient(
-              endX = 0,
-              stops = Stops(Red, DarkRed))
-          },
-          new Text {
-            text = "FX"
-            style = "-fx-font: italic bold 100pt sans-serif"
-            fill = new LinearGradient(
-              endX = 0,
-              stops = Stops(White, DarkGray)
-            )
-            effect = new DropShadow {
-              color = DarkGray
-              radius = 15
-              spread = 0.25
-            }
-          }
-        )
-      }
+//      fill = Color.rgb(38, 38, 38)
+      content = PdfViewerUi.createViewer()
+//      content = new HBox {
+//        padding = Insets(50, 80, 50, 80)
+//        children = Seq(
+//          PdfViewerUi.createViewer()
+//          new Text {
+//            text <== textProperty
+//            style = "-fx-font: normal bold 100pt sans-serif"
+//            fill = new LinearGradient(
+//              endX = 0,
+//              stops = Stops(Red, DarkRed))
+//          },
+//          new Text {
+//            text = "FX"
+//            style = "-fx-font: italic bold 100pt sans-serif"
+//            fill = new LinearGradient(
+//              endX = 0,
+//              stops = Stops(White, DarkGray)
+//            )
+//            effect = new DropShadow {
+//              color = DarkGray
+//              radius = 15
+//              spread = 0.25
+//            }
+//          }
+//        )
+//      }
     }
 
   }

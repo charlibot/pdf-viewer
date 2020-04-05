@@ -3,6 +3,16 @@ pdf-fx-viewer
 
 https://github.com/ThoughtWorksInc/Binding.scala might be helpful.
 
+http://anonsvn.icesoft.org/repo/icepdf/
+http://anonsvn.icesoft.org/repo/icepdf/trunk/icepdf/examples/
+
+http://www.icesoft.org/wiki/display/PDF/Examples
+http://www.icesoft.org/wiki/display/PDF/ICEpdf+Documentation
+
+Maybe 
+https://sourceforge.net/projects/jpview/
+https://www.idrsolutions.com/jpedal/pricing
+
 Simple example of a ScalaFX application using [Simple-Build-Tool](http://www.scala-sbt.org/) (SBT).
 
 
