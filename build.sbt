@@ -13,6 +13,7 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 
 lazy val Http4sVersion =  "0.21.1"
 lazy val ZioCatsVersion =  "2.0.0.0-RC12"
+lazy val IcePdfVersion = "6.3.2"
 lazy val PureConfigVersion = "0.12.2"
 lazy val LogbackVersion = "1.2.3"
 
@@ -23,6 +24,7 @@ libraryDependencies ++= Seq(
   "org.http4s"      %% "http4s-circe"        % Http4sVersion,
   "org.http4s"      %% "http4s-dsl"          % Http4sVersion,
   "dev.zio"         %% "zio-interop-cats"    % ZioCatsVersion,
+  "org.icepdf.os" % "icepdf-viewer" % IcePdfVersion,// excludeAll(ExclusionRule("org.bouncycastle")),
   "com.github.pureconfig" %% "pureconfig"             % PureConfigVersion,
   "com.github.pureconfig" %% "pureconfig-cats-effect" % PureConfigVersion,
   "ch.qos.logback" % "logback-classic" % LogbackVersion,
