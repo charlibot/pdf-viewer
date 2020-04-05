@@ -1,6 +1,6 @@
 package com.charlibot.pdfviewer.http
 
-import com.charlibot.pdfviewer.fx._
+import com.charlibot.pdfviewer.ui._
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import zio._

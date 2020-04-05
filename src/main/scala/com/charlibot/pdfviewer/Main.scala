@@ -1,38 +1,29 @@
 package com.charlibot.pdfviewer
 
-import com.charlibot.pdfviewer.fx.Ui
-import scalafx.application.JFXApp
-import zio.{BootstrapRuntime, IO, ZEnv, ZIO}
+import com.charlibot.pdfviewer.ui.Ui
+import zio._
+import zio.console.putStrLn
 
-// starts the fx application alongside the HTTP server
-object Main extends JFXApp with BootstrapRuntime {
+import scala.swing.{Dimension, Swing}
 
-  stage = Ui.stage
+// starts the ui application alongside the HTTP server
+object Main extends App {
 
-  /**
-   * The main function of the application, which will be passed the command-line
-   * arguments to the program and has to return an `IO` with the errors fully handled.
-   */
-  def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = HttpServer.run(args)
+  def runUi(args: List[String]) = Swing.onEDTWait {
+    val t = Ui.frame
+    if (t.getSize == new Dimension(0,0)) t.pack()
+    t.setVisible(true)
+  }
 
-  override def main(args0: Array[String]): Unit =
-    try sys.exit(
-      unsafeRun(
-        (for {
-          fxFiber <- ZIO.effect(super.main(args0)).fork
-          fiber <- run(args0.toList).fork
-          zipped = fxFiber *> fiber
-          _ <- IO.effectTotal(java.lang.Runtime.getRuntime.addShutdownHook(new Thread {
-            override def run() = {
-              val _ = unsafeRunSync(zipped.interrupt)
-            }
-          }))
-          // TODO: Want to stop everything if fxFiber is stopped.
-          result <- zipped.join
-          _      <- zipped.interrupt
-        } yield result)
-      )
+  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
+    val program = for {
+      _ <- ZIO.effect(runUi(args))
+      server <- HttpServer.server(args)
+    } yield server
+
+    program.foldM(
+      err => putStrLn(s"Execution failed with: $err") *> IO.succeed(1),
+      _ => IO.succeed(0)
     )
-    catch { case _: SecurityException => }
-
+  }
 }

@@ -2,7 +2,7 @@ package com.charlibot.pdfviewer
 
 import zio._
 
-package object fx {
+package object ui {
 
   type Fx = Has[Fx.Service]
 
@@ -12,7 +12,7 @@ package object fx {
     }
 
     val live: Layer[Throwable, Fx] = ZLayer.succeed(new Service {
-      override def next: Task[Int] = ZIO.effect(Ui.textProperty() = "Jaas").map(_ => 1)
+      override def next: Task[Int] = PdfViewerUi.nextPage
     })
   }
 
