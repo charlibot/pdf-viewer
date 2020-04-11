@@ -4,18 +4,18 @@ import zio._
 
 package object ui {
 
-  type Fx = Has[Fx.Service]
+  type Ui = Has[Ui.Service]
 
-  object Fx {
+  object Ui {
     trait Service {
       def next: Task[Int]
     }
 
-    val live: Layer[Throwable, Fx] = ZLayer.succeed(new Service {
+    val live: Layer[Throwable, Ui] = ZLayer.succeed(new Service {
       override def next: Task[Int] = PdfViewerUi.nextPage
     })
   }
 
-  def next: RIO[Fx, Int] = RIO.accessM(_.get.next)
+  def next: RIO[Ui, Int] = RIO.accessM(_.get.next)
 
 }
