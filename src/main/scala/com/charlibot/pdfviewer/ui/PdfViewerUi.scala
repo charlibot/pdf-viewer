@@ -1,21 +1,19 @@
 package com.charlibot.pdfviewer.ui
 
 import javax.swing.JPanel
-import org.icepdf.core.Memento
 import org.icepdf.core.pobjects.Page
 import org.icepdf.core.pobjects.actions.Action
 import org.icepdf.core.pobjects.annotations.Annotation
-import org.icepdf.ri.common.views.{AnnotationCallback, AnnotationComponent, PageViewComponent}
+import org.icepdf.ri.common.views.{AnnotationCallback, AnnotationComponent, DocumentViewControllerImpl, PageViewComponent}
 import org.icepdf.ri.common.{SwingController, SwingViewBuilder}
 import zio.{Task, ZIO}
-
-import scala.swing.Panel;
 
 object PdfViewerUi {
     val swingController = new SwingController()
 
   def createViewer(): JPanel = {
     swingController.setIsEmbeddedComponent(true)
+    swingController.getDocumentViewController.setViewType(DocumentViewControllerImpl.TWO_PAGE_RIGHT_VIEW)
     swingController.getDocumentViewController.setAnnotationCallback(new AnnotationCallback {
       override def processAnnotationAction(annotation: Annotation, action: Action, x: Int, y: Int): Unit = {}
       override def pageAnnotationsInitialized(page: Page): Unit = {}
@@ -28,6 +26,7 @@ object PdfViewerUi {
     val viewerPanel = swingViewBuilder.buildViewerPanel()
     viewerPanel.revalidate()
 
+    swingController.setPageViewMode(DocumentViewControllerImpl.TWO_PAGE_RIGHT_VIEW, true)
     viewerPanel
   }
 

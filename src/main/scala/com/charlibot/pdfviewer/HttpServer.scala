@@ -1,7 +1,7 @@
 package com.charlibot.pdfviewer
 
 import cats.effect.ExitCode
-import com.charlibot.pdfviewer.ui.Fx
+import com.charlibot.pdfviewer.ui.Ui
 import com.charlibot.pdfviewer.http.Api
 import org.http4s.implicits._
 import org.http4s.server.Router
@@ -14,7 +14,7 @@ import zio.interop.catz._
 
 object HttpServer {
 
-  type AppEnvironment = Fx with Clock
+  type AppEnvironment = Ui with Clock
 
   type AppTask[A] = RIO[AppEnvironment, A]
 
@@ -35,6 +35,6 @@ object HttpServer {
       }
     } yield server
 
-    program.provideSomeLayer[ZEnv](Fx.live)
+    program.provideSomeLayer[ZEnv](Ui.live)
   }
 }

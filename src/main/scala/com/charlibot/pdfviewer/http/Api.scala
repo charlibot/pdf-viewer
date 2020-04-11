@@ -6,7 +6,7 @@ import org.http4s.dsl.Http4sDsl
 import zio._
 import zio.interop.catz._
 
-final case class Api[R <: Fx]() {
+final case class Api[R <: Ui]() {
 
   type ViewerTask[A] = RIO[R, A]
 
