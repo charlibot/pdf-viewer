@@ -25,7 +25,6 @@ import scala.concurrent.ExecutionContext
 final case class Views[R](viewerOperations: Queue[Task, ViewerOps], queue: Queue[Task, FromClient], blockingEC: ExecutionContext) {
 
   type ViewsTask[A] = RIO[R, A]
-//  type ViewsTask[A] = Task[A]
 
   implicit val customConfig: Configuration = Configuration.default.withDefaults.withDiscriminator("type").withKebabCaseConstructorNames
 

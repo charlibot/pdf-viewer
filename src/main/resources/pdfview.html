@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PDF Viewer</title>
 
-<!--  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.2/css/bulma.min.css">-->
-<!--  <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>-->
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf_viewer.css" integrity="sha256-EsxBWejxV1RT3asmXOgR7aweC4EYO2JLpef0phZyJ68=" crossorigin="anonymous" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf.min.js" integrity="sha256-O6polm3ZRTZEOAneYbvsKty3c3KRcDf20McwtlCga5s=" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf_viewer.js" integrity="sha256-2KVmPc/BoX9a9+veufcVnqIOVBTMy0zCd1Sc3YGfHpQ=" crossorigin="anonymous"></script>
@@ -26,18 +23,12 @@
     }
   </style>
 
-<!--  <script src="pdfviewer.js"></script>-->
 </head>
 <body>
 <div id="viewerContainer">
   <div id="viewer" class="pdfViewer"></div>
 </div>
-<!--<div id="elm"></div>-->
 <script>
-    // var app = Elm.PdfView.init({
-    //     node: document.getElementById('elm')
-    // });
-
     var container = document.getElementById("viewerContainer");
 
     var eventBus = new pdfjsViewer.EventBus();
@@ -89,6 +80,7 @@
         if (pdfViewer.currentPageNumber >= pdfViewer.pagesCount) {
             return;
         }
+        // since we view two pages at once we skip 2 pages every next call
         pdfViewer.currentPageNumber = pdfViewer.currentPageNumber + 2;
     }
 
