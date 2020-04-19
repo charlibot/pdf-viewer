@@ -19,7 +19,9 @@ libraryDependencies ++= Seq(
   "org.http4s"      %% "http4s-blaze-client" % Http4sVersion,
   "org.http4s"      %% "http4s-circe"        % Http4sVersion,
   "org.http4s"      %% "http4s-dsl"          % Http4sVersion,
+  "io.circe"        %% "circe-parser"       % CirceVersion,
   "io.circe"        %% "circe-generic"       % CirceVersion,
+  "io.circe"        %% "circe-generic-extras" % CirceVersion,
   "dev.zio"         %% "zio-interop-cats"    % ZioCatsVersion,
   "com.github.pureconfig" %% "pureconfig"             % PureConfigVersion,
   "com.github.pureconfig" %% "pureconfig-cats-effect" % PureConfigVersion,
@@ -30,10 +32,10 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xcheckinit", "-encoding", 
 
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
-enablePlugins(SbtWeb)
+//enablePlugins(SbtWeb)
 
 // TODO: This doesn't work the way i want it.
-import ElmKeys._
-elmOutput in elmMake := (resourceDirectory in Compile).value / "js" / "elmMain.js"
-(compile in Compile) := ((compile in Compile) dependsOn elmMake).value
+//import ElmKeys._
+//elmOutput in elmMake := (resourceDirectory in Compile).value / "js" / "elmMain.js"
+//(compile in Compile) := ((compile in Compile) dependsOn elmMake).value
 

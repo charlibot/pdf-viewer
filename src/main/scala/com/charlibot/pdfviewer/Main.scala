@@ -4,7 +4,7 @@ import cats.effect.ExitCode
 import com.charlibot.pdfviewer.configuration.Configuration
 import com.charlibot.pdfviewer.http.{Api, Views}
 import com.charlibot.pdfviewer.pdfs.Pdfs
-import com.charlibot.pdfviewer.ui.Ui
+import com.charlibot.pdfviewer.ui.{FromClient, Ui, ViewerOps}
 import org.http4s.implicits._
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
@@ -27,9 +27,14 @@ object Main extends App {
     val program: ZIO[AppEnvironment, Throwable, Unit] = for {
       api <- configuration.apiConfig
       blockingEC <- blocking.blocking { ZIO.descriptor.map(_.executor.asEC) }
+
+      // TODO: Move to thingy
+      queueViewerOps <- fs2.concurrent.Queue.unbounded[Task, ViewerOps]
+      queueViewerOpsInput <- fs2.concurrent.Queue.unbounded[Task, FromClient]
+
       httpApp = Router[AppTask](
-        "/api" -> Api().route,
-        "/" -> Views(blockingEC).route
+        "/api" -> Api(queueViewerOps).route,
+        "/" -> Views(queueViewerOps, queueViewerOpsInput, blockingEC).route
       ).orNotFound
 
       server <- ZIO.runtime[AppEnvironment].flatMap { implicit rts =>
