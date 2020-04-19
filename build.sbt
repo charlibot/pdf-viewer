@@ -1,17 +1,14 @@
 // Name of the project
-name := "pdf-fx-viewer"
+name := "pdf-elm-viewer"
 
 // Project version
-version := "12.0.2-R18"
+version := "0.0.1"
 
 // Version of Scala used by the project
 scalaVersion := "2.13.1"
 
-// Add dependency on ScalaFX library
-libraryDependencies += "org.scalafx" %% "scalafx" % "12.0.2-R18"
-resolvers += Resolver.sonatypeRepo("snapshots")
-
 lazy val Http4sVersion =  "0.21.1"
+lazy val CirceVersion = "0.13.0"
 lazy val ZioCatsVersion =  "2.0.0.0-RC12"
 lazy val PureConfigVersion = "0.12.2"
 lazy val LogbackVersion = "1.2.3"
@@ -22,6 +19,9 @@ libraryDependencies ++= Seq(
   "org.http4s"      %% "http4s-blaze-client" % Http4sVersion,
   "org.http4s"      %% "http4s-circe"        % Http4sVersion,
   "org.http4s"      %% "http4s-dsl"          % Http4sVersion,
+  "io.circe"        %% "circe-parser"       % CirceVersion,
+  "io.circe"        %% "circe-generic"       % CirceVersion,
+  "io.circe"        %% "circe-generic-extras" % CirceVersion,
   "dev.zio"         %% "zio-interop-cats"    % ZioCatsVersion,
   "com.github.pureconfig" %% "pureconfig"             % PureConfigVersion,
   "com.github.pureconfig" %% "pureconfig-cats-effect" % PureConfigVersion,
@@ -30,21 +30,12 @@ libraryDependencies ++= Seq(
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xcheckinit", "-encoding", "utf8", "-feature")
 
-// Fork a new JVM for 'run' and 'test:run', to avoid JavaFX double initialization problems
-fork := true
-
-// Determine OS version of JavaFX binaries
-lazy val osName = System.getProperty("os.name") match {
-  case n if n.startsWith("Linux") => "linux"
-  case n if n.startsWith("Mac") => "mac"
-  case n if n.startsWith("Windows") => "win"
-  case _ => throw new Exception("Unknown platform!")
-}
-
-// Add JavaFX dependencies
-lazy val javaFXModules = Seq("base", "controls", "fxml", "graphics", "media", "swing", "web")
-libraryDependencies ++= javaFXModules.map( m=>
-  "org.openjfx" % s"javafx-$m" % "12.0.2" classifier osName
-)
-
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+
+//enablePlugins(SbtWeb)
+
+// TODO: This doesn't work the way i want it.
+//import ElmKeys._
+//elmOutput in elmMake := (resourceDirectory in Compile).value / "js" / "elmMain.js"
+//(compile in Compile) := ((compile in Compile) dependsOn elmMake).value
+

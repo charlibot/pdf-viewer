@@ -1,1 +1,1 @@
-scalacOptions ++= Seq("-unchecked", "-deprecation")
+addSbtPlugin("io.finstack" % "sbt-elm" % "0.2.0")

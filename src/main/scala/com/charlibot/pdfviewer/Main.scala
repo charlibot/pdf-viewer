@@ -1,38 +1,55 @@
 package com.charlibot.pdfviewer
 
-import com.charlibot.pdfviewer.fx.Ui
-import scalafx.application.JFXApp
-import zio.{BootstrapRuntime, IO, ZEnv, ZIO}
+import cats.effect.ExitCode
+import com.charlibot.pdfviewer.configuration.Configuration
+import com.charlibot.pdfviewer.http.{Api, Views}
+import com.charlibot.pdfviewer.pdfs.Pdfs
+import com.charlibot.pdfviewer.ui.{FromClient, Ui, ViewerOps}
+import org.http4s.implicits._
+import org.http4s.server.Router
+import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.server.middleware.CORS
+import zio._
+import zio.blocking.Blocking
+import zio.clock.Clock
+import zio.console.putStrLn
+import zio.interop.catz._
 
-// starts the fx application alongside the HTTP server
-object Main extends JFXApp with BootstrapRuntime {
+object Main extends App {
 
-  stage = Ui.stage
+  type AppEnvironment = Configuration with Ui with Clock with Blocking with Pdfs
 
-  /**
-   * The main function of the application, which will be passed the command-line
-   * arguments to the program and has to return an `IO` with the errors fully handled.
-   */
-  def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = HttpServer.run(args)
+  type AppTask[A] = RIO[AppEnvironment, A]
 
-  override def main(args0: Array[String]): Unit =
-    try sys.exit(
-      unsafeRun(
-        (for {
-          fxFiber <- ZIO.effect(super.main(args0)).fork
-          fiber <- run(args0.toList).fork
-          zipped = fxFiber *> fiber
-          _ <- IO.effectTotal(java.lang.Runtime.getRuntime.addShutdownHook(new Thread {
-            override def run() = {
-              val _ = unsafeRunSync(zipped.interrupt)
-            }
-          }))
-          // TODO: Want to stop everything if fxFiber is stopped.
-          result <- zipped.join
-          _      <- zipped.interrupt
-        } yield result)
-      )
+  val pdfs = Configuration.live >>> Pdfs.live
+
+  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] = {
+    val program: ZIO[AppEnvironment, Throwable, Unit] = for {
+      api <- configuration.apiConfig
+      blockingEC <- blocking.blocking { ZIO.descriptor.map(_.executor.asEC) }
+
+      // TODO: Move to thingy
+      queueViewerOps <- fs2.concurrent.Queue.unbounded[Task, ViewerOps]
+      queueViewerOpsInput <- fs2.concurrent.Queue.unbounded[Task, FromClient]
+
+      httpApp = Router[AppTask](
+        "/api" -> Api(queueViewerOps).route,
+        "/" -> Views(queueViewerOps, queueViewerOpsInput, blockingEC).route
+      ).orNotFound
+
+      server <- ZIO.runtime[AppEnvironment].flatMap { implicit rts =>
+        BlazeServerBuilder[AppTask]
+          .bindHttp(api.port, api.endpoint)
+          .withHttpApp(CORS(httpApp))
+          .serve
+          .compile[AppTask, AppTask, ExitCode]
+          .drain
+      }
+    } yield server
+
+    program.provideSomeLayer[ZEnv](Configuration.live ++ pdfs ++ Ui.live)foldM(
+      err => putStrLn(s"Execution failed with: $err") *> IO.succeed(1),
+      _ => IO.succeed(0)
     )
-    catch { case _: SecurityException => }
-
+  }
 }
