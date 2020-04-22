@@ -6,6 +6,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
 import Json.Decode as Decode exposing (Decoder, field, string)
+import Url.Builder as UrlBuilder
 
 -- MAIN
 main =
@@ -32,6 +33,7 @@ init _ =
 type Msg
   = GotPdfs (Result Http.Error Pdfs)
   | ViewPdf String
+  | Loaded (Result Http.Error ())
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -44,8 +46,11 @@ update msg model =
         Err _ ->
           (Failure, Cmd.none)
 
-    ViewPdf pdfId ->
-      (model, Cmd.none)
+    ViewPdf pdfPath ->
+      (model, getPdf pdfPath)
+
+    Loaded _ ->
+        (model, Cmd.none)
 
 
 
@@ -81,8 +86,10 @@ viewHeaders = tr [] [ th [] [ text "Name" ] ]
 
 viewPdf : PdfRecord -> Html Msg
 viewPdf pdf =
-    tr [ onClick (ViewPdf pdf.name) ] [ td [] [ text pdf.name ]
-          ]
+    tr []
+        [ td [] [ text pdf.name ]
+        , td [] [ button [ class "button is-primary is-light is-pulled-right", onClick (ViewPdf pdf.name)] [ text "View" ] ]
+        ]
 
 -- HTTP
 getPdfs : Cmd Msg
@@ -99,3 +106,14 @@ pdfRecordDecoder : Decoder PdfRecord
 pdfRecordDecoder =
     Decode.map PdfRecord
         (field "name" Decode.string)
+
+getPdf : String -> Cmd Msg
+getPdf path =
+  Http.post
+    { url = "/api/viewer/load"
+    , expect  = Http.expectWhatever Loaded
+    , body = Http.stringBody "application/x-www-form-urlencoded" (urlFormEncodedPdfPath path)
+    }
+
+urlFormEncodedPdfPath : String -> String
+urlFormEncodedPdfPath path = String.dropLeft 1 (UrlBuilder.toQuery [ UrlBuilder.string "pdf" path ])

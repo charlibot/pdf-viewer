@@ -32,9 +32,11 @@ object Main extends App {
       queueViewerOps <- fs2.concurrent.Queue.unbounded[Task, ViewerOps]
       queueViewerOpsInput <- fs2.concurrent.Queue.unbounded[Task, FromClient]
 
+      pdfsConfig <- configuration.pdfsConfig
+
       httpApp = Router[AppTask](
         "/api" -> Api(queueViewerOps).route,
-        "/" -> Views(queueViewerOps, queueViewerOpsInput, blockingEC).route
+        "/" -> Views(queueViewerOps, queueViewerOpsInput, blockingEC, pdfsConfig.basepath).route
       ).orNotFound
 
       server <- ZIO.runtime[AppEnvironment].flatMap { implicit rts =>

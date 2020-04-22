@@ -31,13 +31,13 @@ final case class Api[R <: Ui with Pdfs](queueViewerOps: fs2.concurrent.Queue[Tas
       case GET -> Root / "pdfs" =>
         listPdfs.foldM(t => InternalServerError(t.getMessage), pdfs => Ok(pdfs))
 
-      case req @ POST -> Root / "load" =>
+      case req @ POST -> Root / "viewer"/ "load" =>
         req
           .decode[UrlForm] { data =>
             data.values.get("pdf").flatMap(_.uncons) match {
               case Some((pdfUrl, _)) =>
                 for {
-                  _ <- queueViewerOps.enqueue1(Load(pdfUrl))
+                  _ <- queueViewerOps.enqueue1(Load(s"/pdfs/$pdfUrl"))
                   response <- Ok("")
                 } yield response
               case None =>

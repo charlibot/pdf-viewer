@@ -22,7 +22,7 @@ import io.circe.parser._
 
 import scala.concurrent.ExecutionContext
 
-final case class Views[R](viewerOperations: Queue[Task, ViewerOps], queue: Queue[Task, FromClient], blockingEC: ExecutionContext) {
+final case class Views[R](viewerOperations: Queue[Task, ViewerOps], queue: Queue[Task, FromClient], blockingEC: ExecutionContext, pdfsPath: String) {
 
   type ViewsTask[A] = RIO[R, A]
 
@@ -57,7 +57,7 @@ final case class Views[R](viewerOperations: Queue[Task, ViewerOps], queue: Queue
 
   val assets = resourceService[ViewsTask](ResourceService.Config("assets", Blocker.liftExecutionContext(blockingEC)))
 
-  val pdfs = fileService[ViewsTask](FileService.Config("/Users/charlievans/Downloads/pdfsss", Blocker.liftExecutionContext(blockingEC), "/pdfs"))
+  val pdfs = fileService[ViewsTask](FileService.Config(pdfsPath, Blocker.liftExecutionContext(blockingEC), "/pdfs"))
 
   val route = views <+> assets <+> pdfs
 
