@@ -23,6 +23,7 @@ type Model = Failure | Loading | Success Pdfs
 type alias Pdfs = List PdfRecord
 type alias PdfRecord =
     {  name : String
+    ,  path : String
     }
 
 init : () -> (Model, Cmd Msg)
@@ -88,7 +89,7 @@ viewPdf : PdfRecord -> Html Msg
 viewPdf pdf =
     tr []
         [ td [] [ text pdf.name ]
-        , td [] [ button [ class "button is-primary is-light is-pulled-right", onClick (ViewPdf pdf.name)] [ text "View" ] ]
+        , td [] [ button [ class "button is-primary is-light is-pulled-right", onClick (ViewPdf pdf.path)] [ text "View" ] ]
         ]
 
 -- HTTP
@@ -104,8 +105,9 @@ recordsDecoder = Decode.list pdfRecordDecoder
 
 pdfRecordDecoder : Decoder PdfRecord
 pdfRecordDecoder =
-    Decode.map PdfRecord
+    Decode.map2 PdfRecord
         (field "name" Decode.string)
+        (field "path" Decode.string)
 
 getPdf : String -> Cmd Msg
 getPdf path =
@@ -115,5 +117,6 @@ getPdf path =
     , body = Http.stringBody "application/x-www-form-urlencoded" (urlFormEncodedPdfPath path)
     }
 
+-- Have to remove the ? since it appears twice
 urlFormEncodedPdfPath : String -> String
 urlFormEncodedPdfPath path = String.dropLeft 1 (UrlBuilder.toQuery [ UrlBuilder.string "pdf" path ])
