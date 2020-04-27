@@ -6,7 +6,10 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
 import Json.Decode as Decode exposing (Decoder, field, string)
+import RemoteData exposing (..)
 import Url.Builder as UrlBuilder
+import Table exposing (defaultCustomizations)
+
 
 -- MAIN
 main =
@@ -18,7 +21,11 @@ main =
     }
 
 -- MODEL
-type Model = Failure | Loading | Success Pdfs
+type alias Model =
+    { pdfs : WebData Pdfs
+    , tableState : Table.State
+    , query : String
+    }
 
 type alias Pdfs = List PdfRecord
 type alias PdfRecord =
@@ -28,30 +35,37 @@ type alias PdfRecord =
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  (Loading, getPdfs)
+  ({ pdfs = Loading, tableState = Table.initialSort "Name", query = "" }, getPdfs)
 
 -- UPDATE
 type Msg
-  = GotPdfs (Result Http.Error Pdfs)
+  = GotPdfs (WebData Pdfs)
   | ViewPdf String
-  | Loaded (Result Http.Error ())
+  | Loaded (WebData ())
+  | SetQuery String
+  | SetTableState Table.State
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    GotPdfs result ->
-      case result of
-        Ok pdfs ->
-          (Success pdfs, Cmd.none)
-
-        Err _ ->
-          (Failure, Cmd.none)
+    GotPdfs response ->
+      ({model | pdfs = response}, Cmd.none)
 
     ViewPdf pdfPath ->
       (model, getPdf pdfPath)
 
     Loaded _ ->
         (model, Cmd.none)
+
+    SetQuery newQuery ->
+      ( { model | query = newQuery }
+      , Cmd.none
+      )
+
+    SetTableState newState ->
+      ( { model | tableState = newState }
+      , Cmd.none
+      )
 
 
 
@@ -66,38 +80,57 @@ view model =
   section [ class "section" ]
     [ div [ class "container" ]
         [ h1 [ class "title" ] [ text "Pdfs" ]
+        , input [ class "input", placeholder "Search by Name", onInput SetQuery ] []
         , viewPdfs model
         ]
     ]
 
 viewPdfs : Model -> Html Msg
 viewPdfs model =
-  case model of
-    Failure ->
+  case model.pdfs of
+    NotAsked ->
+        text "Huh?"
+    Failure err ->
       text "Failed to get the pdfs."
 
     Loading ->
       text "Loading pdfs..."
 
     Success pdfs ->
-      table [ class "table is-striped is-fullwidth is-hoverable" ] (viewHeaders :: List.map viewPdf pdfs)
+      let
+        lowerQuery =
+          String.toLower model.query
 
-viewHeaders : Html Msg
-viewHeaders = tr [] [ th [] [ text "Name" ] ]
+        filteredPdfs =
+          List.filter (String.contains lowerQuery << String.toLower << .name) pdfs
+      in
+        Table.view config model.tableState filteredPdfs
 
-viewPdf : PdfRecord -> Html Msg
-viewPdf pdf =
-    tr []
-        [ td [] [ text pdf.name ]
-        , td [] [ button [ class "button is-primary is-light is-pulled-right", onClick (ViewPdf pdf.path)] [ text "View" ] ]
+config : Table.Config PdfRecord Msg
+config =
+  Table.customConfig
+    { toId = .name
+    , toMsg = SetTableState
+    , columns =
+        [ Table.stringColumn "Name" .name
+        , Table.veryCustomColumn { name = "", viewData = viewButton, sorter = Table.unsortable }
         ]
+    , customizations =
+        { defaultCustomizations | tableAttrs = tableAttrs }
+    }
+
+tableAttrs : List (Attribute Msg)
+tableAttrs = [ class "table is-striped is-fullwidth is-hoverable" ]
+
+viewButton : PdfRecord -> Table.HtmlDetails Msg
+viewButton pdf = Table.HtmlDetails [] [ button [ class "button is-primary is-light is-pulled-right", onClick (ViewPdf pdf.path)] [ text "View" ] ]
 
 -- HTTP
 getPdfs : Cmd Msg
 getPdfs =
   Http.get
     { url = "/api/pdfs"
-    , expect  = Http.expectJson GotPdfs recordsDecoder
+    , expect  = Http.expectJson (RemoteData.fromResult >> GotPdfs) recordsDecoder
     }
 
 recordsDecoder : Decoder Pdfs
@@ -113,7 +146,7 @@ getPdf : String -> Cmd Msg
 getPdf path =
   Http.post
     { url = "/api/viewer/load"
-    , expect  = Http.expectWhatever Loaded
+    , expect  = Http.expectWhatever (RemoteData.fromResult >> Loaded)
     , body = Http.stringBody "application/x-www-form-urlencoded" (urlFormEncodedPdfPath path)
     }
 
