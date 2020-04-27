@@ -40,7 +40,7 @@ init _ =
 -- UPDATE
 type Msg
   = GotPdfs (WebData Pdfs)
-  | ViewPdf String
+  | LoadPdf String
   | Loaded (WebData ())
   | SetQuery String
   | SetTableState Table.State
@@ -51,7 +51,7 @@ update msg model =
     GotPdfs response ->
       ({model | pdfs = response}, Cmd.none)
 
-    ViewPdf pdfPath ->
+    LoadPdf pdfPath ->
       (model, getPdf pdfPath)
 
     Loaded _ ->
@@ -112,18 +112,16 @@ config =
     { toId = .name
     , toMsg = SetTableState
     , columns =
-        [ Table.stringColumn "Name" .name
-        , Table.veryCustomColumn { name = "", viewData = viewButton, sorter = Table.unsortable }
-        ]
+        [ Table.stringColumn "Name" .name]
     , customizations =
-        { defaultCustomizations | tableAttrs = tableAttrs }
+        { defaultCustomizations | tableAttrs = tableAttrs, rowAttrs = loadPdf }
     }
+
+loadPdf : PdfRecord -> List (Attribute Msg)
+loadPdf pdf = [ onClick (LoadPdf pdf.path) ]
 
 tableAttrs : List (Attribute Msg)
 tableAttrs = [ class "table is-striped is-fullwidth is-hoverable", style "table-layout" "fixed" ]
-
-viewButton : PdfRecord -> Table.HtmlDetails Msg
-viewButton pdf = Table.HtmlDetails [] [ button [ class "button is-primary is-light is-pulled-right", onClick (ViewPdf pdf.path)] [ text "View" ] ]
 
 -- HTTP
 getPdfs : Cmd Msg
