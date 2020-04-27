@@ -120,7 +120,7 @@ config =
     }
 
 tableAttrs : List (Attribute Msg)
-tableAttrs = [ class "table is-striped is-fullwidth is-hoverable" ]
+tableAttrs = [ class "table is-striped is-fullwidth is-hoverable", style "table-layout" "fixed" ]
 
 viewButton : PdfRecord -> Table.HtmlDetails Msg
 viewButton pdf = Table.HtmlDetails [] [ button [ class "button is-primary is-light is-pulled-right", onClick (ViewPdf pdf.path)] [ text "View" ] ]
