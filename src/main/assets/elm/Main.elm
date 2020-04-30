@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-import Browser
+import Browser exposing (Document, UrlRequest(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -9,23 +9,30 @@ import Json.Decode as Decode exposing (Decoder, field, string)
 import RemoteData exposing (..)
 import Url.Builder as UrlBuilder
 import Table exposing (defaultCustomizations)
-
+import Url exposing (Url)
+import Browser.Navigation as Nav
 
 -- MAIN
 main =
-  Browser.element
+  Browser.application
     { init = init
     , update = update
     , subscriptions = subscriptions
     , view = view
+    , onUrlRequest = LinkClicked
+    , onUrlChange = UrlChanged
     }
 
 -- MODEL
 type alias Model =
-    { pdfs : WebData Pdfs
+    { navKey : Nav.Key
+    , url : Url
+    , pdfs : WebData Pdfs
     , tableState : Table.State
     , query : String
+    , currentPdf : Maybe PdfRecord
     }
+    
 
 type alias Pdfs = List PdfRecord
 type alias PdfRecord =
@@ -33,13 +40,15 @@ type alias PdfRecord =
     ,  path : String
     }
 
-init : () -> (Model, Cmd Msg)
-init _ =
-  ({ pdfs = Loading, tableState = Table.initialSort "Name", query = "" }, getPdfs)
+init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init _ url navKey =
+  ({ navKey = navKey, url = url, pdfs = Loading, tableState = Table.initialSort "Name", query = "", currentPdf = Nothing }, getPdfs)
 
 -- UPDATE
 type Msg
-  = GotPdfs (WebData Pdfs)
+  = LinkClicked UrlRequest
+  | UrlChanged Url
+  | GotPdfs (WebData Pdfs)
   | LoadPdf String
   | Loaded (WebData ())
   | SetQuery String
@@ -48,6 +57,15 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    LinkClicked (Internal url) ->
+      ( model, Nav.pushUrl model.navKey (Url.toString url) )
+
+    LinkClicked (External url) ->
+      ( model, Nav.load url )
+
+    UrlChanged url ->
+      ( { model | url = url }, Cmd.none )
+
     GotPdfs response ->
       ({model | pdfs = response}, Cmd.none)
 
@@ -75,8 +93,18 @@ subscriptions _ =
   Sub.none
 
 -- VIEW
-view : Model -> Html Msg
-view model =
+view : Model -> Document Msg
+view model = { title = "PDF viewer", body = [viewBody model]}
+
+viewUpDown : Model -> Html Msg
+viewUpDown model =
+    [ h1 [ class "title" ] [ text model.pdfName ]
+    , input [ class "input", placeholder "Search by Name", onInput SetQuery ] []
+    , viewPdfs model
+    ]
+
+viewBody : Model -> Html Msg
+viewBody model =
   section [ class "section" ]
     [ div [ class "container" ]
         [ h1 [ class "title" ] [ text "Pdfs" ]
