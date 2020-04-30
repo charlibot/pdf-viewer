@@ -24,7 +24,7 @@ main =
     }
 
 -- MODEL
-type alias Model =
+type alias ModelM =
     { navKey : Nav.Key
     , url : Url
     , pdfs : WebData Pdfs
@@ -32,7 +32,24 @@ type alias Model =
     , query : String
     , currentPdf : Maybe PdfRecord
     }
-    
+
+
+type alias Model =
+    { navKey : Nav.Key
+    , url : Url
+    , page : Page
+    }
+
+type alias TablePageModel =
+    { pdfs : WebData Pdfs
+    , tableState : Table.State
+    , query : String
+    }
+
+type alias UpDownPageModel =
+    { currentPdf : PdfRecord }
+
+type Page = TablePage TablePageModel | UpDownPage UpDownPageModel
 
 type alias Pdfs = List PdfRecord
 type alias PdfRecord =
@@ -42,14 +59,17 @@ type alias PdfRecord =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url navKey =
-  ({ navKey = navKey, url = url, pdfs = Loading, tableState = Table.initialSort "Name", query = "", currentPdf = Nothing }, getPdfs)
+  let
+      tablePage = TablePage {pdfs = Loading, tableState = Table.initialSort "Name", query = ""}
+  in
+  ({ navKey = navKey, url = url, page = tablePage }, getPdfs)
 
 -- UPDATE
 type Msg
   = LinkClicked UrlRequest
   | UrlChanged Url
   | GotPdfs (WebData Pdfs)
-  | LoadPdf String
+  | LoadPdf PdfRecord
   | Loaded (WebData ())
   | SetQuery String
   | SetTableState Table.State
@@ -67,24 +87,33 @@ update msg model =
       ( { model | url = url }, Cmd.none )
 
     GotPdfs response ->
-      ({model | pdfs = response}, Cmd.none)
+      (updateTablePage (\m -> { m | pdfs = response }) model, Cmd.none)
 
-    LoadPdf pdfPath ->
-      (model, getPdf pdfPath)
+    LoadPdf pdf ->
+        let
+            url = model.url
+            upDownUrl = { url | path = "/upDown" }
+            commands = Cmd.batch [getPdf pdf.path, Nav.pushUrl model.navKey (Url.toString upDownUrl)]
+        in
+            ({ model | page = UpDownPage { currentPdf = pdf }}, commands)
 
     Loaded _ ->
         (model, Cmd.none)
 
     SetQuery newQuery ->
-      ( { model | query = newQuery }
-      , Cmd.none
-      )
+      (updateTablePage (\m -> { m | query = newQuery }) model, Cmd.none)
 
     SetTableState newState ->
-      ( { model | tableState = newState }
-      , Cmd.none
-      )
+      (updateTablePage (\m -> { m | tableState = newState }) model, Cmd.none)
 
+updateTablePage : (TablePageModel -> TablePageModel) -> Model -> Model
+updateTablePage updateFunc model =
+    let
+      updatedPage = case model.page of
+          TablePage m -> TablePage (updateFunc m)
+          UpDownPage m -> UpDownPage m
+    in
+        { model | page = updatedPage}
 
 
 -- SUBSCRIPTIONS
@@ -94,17 +123,21 @@ subscriptions _ =
 
 -- VIEW
 view : Model -> Document Msg
-view model = { title = "PDF viewer", body = [viewBody model]}
+view model =
+    case model.page of
+        TablePage m -> { title = "PDF viewer", body = [viewTablePage m]}
+        UpDownPage m -> { title = m.currentPdf.name, body = [viewUpDownPage m]}
 
-viewUpDown : Model -> Html Msg
-viewUpDown model =
-    [ h1 [ class "title" ] [ text model.pdfName ]
-    , input [ class "input", placeholder "Search by Name", onInput SetQuery ] []
-    , viewPdfs model
-    ]
+viewUpDownPage : UpDownPageModel -> Html Msg
+viewUpDownPage model =
+    section [ class "section" ]
+        [ div [ class "container" ]
+            [ h1 [ class "title" ] [ text model.currentPdf.name ]
+            ]
+        ]
 
-viewBody : Model -> Html Msg
-viewBody model =
+viewTablePage : TablePageModel -> Html Msg
+viewTablePage model =
   section [ class "section" ]
     [ div [ class "container" ]
         [ h1 [ class "title" ] [ text "Pdfs" ]
@@ -113,7 +146,7 @@ viewBody model =
         ]
     ]
 
-viewPdfs : Model -> Html Msg
+viewPdfs : TablePageModel -> Html Msg
 viewPdfs model =
   case model.pdfs of
     NotAsked ->
@@ -146,7 +179,7 @@ config =
     }
 
 loadPdf : PdfRecord -> List (Attribute Msg)
-loadPdf pdf = [ onClick (LoadPdf pdf.path) ]
+loadPdf pdf = [ onClick (LoadPdf pdf) ]
 
 tableAttrs : List (Attribute Msg)
 tableAttrs = [ class "table is-striped is-fullwidth is-hoverable", style "table-layout" "fixed" ]
