@@ -28,6 +28,12 @@ final case class Api[R <: Ui with Pdfs](queueViewerOps: fs2.concurrent.Queue[Tas
           response <- Ok("Next page")
         } yield response
 
+      case POST -> Root / "viewer" / "prev" =>
+        for {
+          _ <- queueViewerOps.enqueue1(Prev())
+          response <- Ok("Prev page")
+        } yield response
+
       case GET -> Root / "pdfs" =>
         listPdfs.foldM(t => InternalServerError(t.getMessage), pdfs => Ok(pdfs))
 

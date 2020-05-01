@@ -73,6 +73,8 @@ type Msg
   | Loaded (WebData ())
   | SetQuery String
   | SetTableState Table.State
+  | NextPage
+  | PrevPage
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -106,6 +108,11 @@ update msg model =
     SetTableState newState ->
       (updateTablePage (\m -> { m | tableState = newState }) model, Cmd.none)
 
+    PrevPage ->
+      (model, nextPage)
+    NextPage ->
+      (model, prevPage)
+
 updateTablePage : (TablePageModel -> TablePageModel) -> Model -> Model
 updateTablePage updateFunc model =
     let
@@ -134,8 +141,8 @@ viewUpDownPage model =
         [ div [ class "container" ]
             [ h1 [ class "title" ] [ text model.currentPdf.name ]
             , p [class "buttons"]
-                [ button [class "button is-large"] [span [class "icon is-large"] [i [class "fas fa-chevron-left fa-2x"] [] ]]
-                , button [class "button is-large"] [span [class "icon is-large"] [i [class "fas fa-chevron-right fa-2x"] [] ]]
+                [ button [class "button is-large", onClick NextPage] [span [class "icon is-large"] [i [class "fas fa-chevron-left fa-2x"] [] ]]
+                , button [class "button is-large", onClick PrevPage] [span [class "icon is-large"] [i [class "fas fa-chevron-right fa-2x"] [] ]]
                 ]
             ]
         ]
@@ -216,3 +223,20 @@ getPdf path =
 -- Have to remove the ? since it appears twice
 urlFormEncodedPdfPath : String -> String
 urlFormEncodedPdfPath path = String.dropLeft 1 (UrlBuilder.toQuery [ UrlBuilder.string "pdf" path ])
+
+
+nextPage : Cmd Msg
+nextPage =
+    Http.post
+      { url = "/api/viewer/next"
+      , expect  = Http.expectWhatever (RemoteData.fromResult >> Loaded)
+      , body = Http.emptyBody
+      }
+
+prevPage : Cmd Msg
+prevPage =
+    Http.post
+      { url = "/api/viewer/prev"
+      , expect  = Http.expectWhatever (RemoteData.fromResult >> Loaded)
+      , body = Http.emptyBody
+      }
