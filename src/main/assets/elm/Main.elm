@@ -1,30 +1,38 @@
 module Main exposing (..)
 
 import Browser exposing (Document, UrlRequest(..))
+import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
 import Json.Decode as Decode exposing (Decoder, field, string)
 import RemoteData exposing (..)
-import Url.Builder as UrlBuilder
 import Table exposing (defaultCustomizations)
 import Url exposing (Url)
-import Browser.Navigation as Nav
+import Url.Builder as UrlBuilder
+
+
 
 -- MAIN
+
+
 main =
-  Browser.application
-    { init = init
-    , update = update
-    , subscriptions = subscriptions
-    , view = view
-    , onUrlRequest = LinkClicked
-    , onUrlChange = UrlChanged
-    }
+    Browser.application
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        , onUrlRequest = LinkClicked
+        , onUrlChange = UrlChanged
+        }
+
+
 
 -- MODEL
-type alias ModelM =
+
+
+type alias Model =
     { navKey : Nav.Key
     , url : Url
     , pdfs : WebData Pdfs
@@ -34,177 +42,194 @@ type alias ModelM =
     }
 
 
-type alias Model =
-    { navKey : Nav.Key
-    , url : Url
-    , page : Page
-    }
+type alias Pdfs =
+    List PdfRecord
 
-type alias TablePageModel =
-    { pdfs : WebData Pdfs
-    , tableState : Table.State
-    , query : String
-    }
 
-type alias UpDownPageModel =
-    { currentPdf : PdfRecord }
-
-type Page = TablePage TablePageModel | UpDownPage UpDownPageModel
-
-type alias Pdfs = List PdfRecord
 type alias PdfRecord =
-    {  name : String
-    ,  path : String
+    { name : String
+    , path : String
     }
+
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url navKey =
-  let
-      tablePage = TablePage {pdfs = Loading, tableState = Table.initialSort "Name", query = ""}
-  in
-  ({ navKey = navKey, url = url, page = tablePage }, getPdfs)
+    ( { navKey = navKey, url = url, pdfs = Loading, tableState = Table.initialSort "Name", query = "", currentPdf = Nothing }, getPdfs )
+
+
 
 -- UPDATE
+
+
 type Msg
-  = LinkClicked UrlRequest
-  | UrlChanged Url
-  | GotPdfs (WebData Pdfs)
-  | LoadPdf PdfRecord
-  | Loaded (WebData ())
-  | SetQuery String
-  | SetTableState Table.State
-  | NextPage
-  | PrevPage
+    = LinkClicked UrlRequest
+    | UrlChanged Url
+    | GotPdfs (WebData Pdfs)
+    | LoadPdf PdfRecord
+    | Loaded (WebData ())
+    | SetQuery String
+    | SetTableState Table.State
+    | NextPage
+    | PrevPage
 
-update : Msg -> Model -> (Model, Cmd Msg)
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    LinkClicked (Internal url) ->
-      ( model, Nav.pushUrl model.navKey (Url.toString url) )
+    case msg of
+        LinkClicked (Internal url) ->
+            ( model, Nav.pushUrl model.navKey (Url.toString url) )
 
-    LinkClicked (External url) ->
-      ( model, Nav.load url )
+        LinkClicked (External url) ->
+            ( model, Nav.load url )
 
-    UrlChanged url ->
-      ( { model | url = url }, Cmd.none )
+        UrlChanged url ->
+            let
+                load =
+                    Maybe.map (\pdf -> loadPdf pdf.path) model.currentPdf
+            in
+            if url.path == "/upDown" then
+                ( model, Maybe.withDefault Cmd.none load )
 
-    GotPdfs response ->
-      (updateTablePage (\m -> { m | pdfs = response }) model, Cmd.none)
+            else
+                ( { model | currentPdf = Nothing }, Cmd.none )
 
-    LoadPdf pdf ->
-        let
-            url = model.url
-            upDownUrl = { url | path = "/upDown" }
-            commands = Cmd.batch [getPdf pdf.path, Nav.pushUrl model.navKey (Url.toString upDownUrl)]
-        in
-            ({ model | page = UpDownPage { currentPdf = pdf }}, commands)
+        GotPdfs response ->
+            ( { model | pdfs = response }, Cmd.none )
 
-    Loaded _ ->
-        (model, Cmd.none)
+        LoadPdf pdf ->
+            let
+                url =
+                    model.url
 
-    SetQuery newQuery ->
-      (updateTablePage (\m -> { m | query = newQuery }) model, Cmd.none)
+                upDownUrl =
+                    { url | path = "/upDown", query = Just (urlFormEncodedPdfPath pdf.path) }
+            in
+            ( { model | currentPdf = Just pdf }, Nav.pushUrl model.navKey (Url.toString upDownUrl) )
 
-    SetTableState newState ->
-      (updateTablePage (\m -> { m | tableState = newState }) model, Cmd.none)
+        Loaded _ ->
+            ( model, Cmd.none )
 
-    PrevPage ->
-      (model, nextPage)
-    NextPage ->
-      (model, prevPage)
+        SetQuery newQuery ->
+            ( { model | query = newQuery }, Cmd.none )
 
-updateTablePage : (TablePageModel -> TablePageModel) -> Model -> Model
-updateTablePage updateFunc model =
-    let
-      updatedPage = case model.page of
-          TablePage m -> TablePage (updateFunc m)
-          UpDownPage m -> UpDownPage m
-    in
-        { model | page = updatedPage}
+        SetTableState newState ->
+            ( { model | tableState = newState }, Cmd.none )
+
+        PrevPage ->
+            ( model, nextPage )
+
+        NextPage ->
+            ( model, prevPage )
+
 
 
 -- SUBSCRIPTIONS
+
+
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-  Sub.none
+    Sub.none
+
+
 
 -- VIEW
+
+
 view : Model -> Document Msg
 view model =
-    case model.page of
-        TablePage m -> { title = "PDF viewer", body = [viewTablePage m]}
-        UpDownPage m -> { title = m.currentPdf.name, body = [viewUpDownPage m]}
+    case model.currentPdf of
+        Nothing ->
+            { title = "PDF viewer", body = [ viewTablePage model ] }
 
-viewUpDownPage : UpDownPageModel -> Html Msg
-viewUpDownPage model =
+        Just currentPdf ->
+            { title = currentPdf.name, body = [ viewUpDownPage currentPdf ] }
+
+
+viewUpDownPage : PdfRecord -> Html Msg
+viewUpDownPage currentPdf =
     section [ class "section" ]
         [ div [ class "container" ]
-            [ h1 [ class "title" ] [ text model.currentPdf.name ]
-            , p [class "buttons"]
-                [ button [class "button is-large", onClick NextPage] [span [class "icon is-large"] [i [class "fas fa-chevron-left fa-2x"] [] ]]
-                , button [class "button is-large", onClick PrevPage] [span [class "icon is-large"] [i [class "fas fa-chevron-right fa-2x"] [] ]]
+            [ h1 [ class "title" ] [ text currentPdf.name ]
+            , p [ class "buttons" ]
+                [ button [ class "button is-large", onClick NextPage ] [ span [ class "icon is-large" ] [ i [ class "fas fa-chevron-left fa-2x" ] [] ] ]
+                , button [ class "button is-large", onClick PrevPage ] [ span [ class "icon is-large" ] [ i [ class "fas fa-chevron-right fa-2x" ] [] ] ]
                 ]
             ]
         ]
 
-viewTablePage : TablePageModel -> Html Msg
+
+viewTablePage : Model -> Html Msg
 viewTablePage model =
-  section [ class "section" ]
-    [ div [ class "container" ]
-        [ h1 [ class "title" ] [ text "Pdfs" ]
-        , input [ class "input", placeholder "Search by Name", onInput SetQuery ] []
-        , viewPdfs model
+    section [ class "section" ]
+        [ div [ class "container" ]
+            [ h1 [ class "title" ] [ text "Pdfs" ]
+            , input [ class "input", placeholder "Search by Name", onInput SetQuery ] []
+            , viewPdfs model
+            ]
         ]
-    ]
 
-viewPdfs : TablePageModel -> Html Msg
+
+viewPdfs : Model -> Html Msg
 viewPdfs model =
-  case model.pdfs of
-    NotAsked ->
-        text "Huh?"
-    Failure err ->
-      text "Failed to get the pdfs."
+    case model.pdfs of
+        NotAsked ->
+            text "Huh?"
 
-    Loading ->
-      text "Loading pdfs..."
+        Failure err ->
+            text "Failed to get the pdfs."
 
-    Success pdfs ->
-      let
-        lowerQuery =
-          String.toLower model.query
+        Loading ->
+            text "Loading pdfs..."
 
-        filteredPdfs =
-          List.filter (String.contains lowerQuery << String.toLower << .name) pdfs
-      in
-        Table.view config model.tableState filteredPdfs
+        Success pdfs ->
+            let
+                lowerQuery =
+                    String.toLower model.query
+
+                filteredPdfs =
+                    List.filter (String.contains lowerQuery << String.toLower << .name) pdfs
+            in
+            Table.view config model.tableState filteredPdfs
+
 
 config : Table.Config PdfRecord Msg
 config =
-  Table.customConfig
-    { toId = .name
-    , toMsg = SetTableState
-    , columns =
-        [ Table.stringColumn "Name" .name]
-    , customizations =
-        { defaultCustomizations | tableAttrs = tableAttrs, rowAttrs = loadPdf }
-    }
+    Table.customConfig
+        { toId = .name
+        , toMsg = SetTableState
+        , columns =
+            [ Table.stringColumn "Name" .name ]
+        , customizations =
+            { defaultCustomizations | tableAttrs = tableAttrs, rowAttrs = loadPdfRowAttrs }
+        }
 
-loadPdf : PdfRecord -> List (Attribute Msg)
-loadPdf pdf = [ onClick (LoadPdf pdf) ]
+
+loadPdfRowAttrs : PdfRecord -> List (Attribute Msg)
+loadPdfRowAttrs pdf =
+    [ onClick (LoadPdf pdf) ]
+
 
 tableAttrs : List (Attribute Msg)
-tableAttrs = [ class "table is-striped is-fullwidth is-hoverable", style "table-layout" "fixed" ]
+tableAttrs =
+    [ class "table is-striped is-fullwidth is-hoverable", style "table-layout" "fixed" ]
+
+
 
 -- HTTP
+
+
 getPdfs : Cmd Msg
 getPdfs =
-  Http.get
-    { url = "/api/pdfs"
-    , expect  = Http.expectJson (RemoteData.fromResult >> GotPdfs) recordsDecoder
-    }
+    Http.get
+        { url = "/api/pdfs"
+        , expect = Http.expectJson (RemoteData.fromResult >> GotPdfs) recordsDecoder
+        }
+
 
 recordsDecoder : Decoder Pdfs
-recordsDecoder = Decode.list pdfRecordDecoder
+recordsDecoder =
+    Decode.list pdfRecordDecoder
+
 
 pdfRecordDecoder : Decoder PdfRecord
 pdfRecordDecoder =
@@ -212,31 +237,38 @@ pdfRecordDecoder =
         (field "name" Decode.string)
         (field "path" Decode.string)
 
-getPdf : String -> Cmd Msg
-getPdf path =
-  Http.post
-    { url = "/api/viewer/load"
-    , expect  = Http.expectWhatever (RemoteData.fromResult >> Loaded)
-    , body = Http.stringBody "application/x-www-form-urlencoded" (urlFormEncodedPdfPath path)
-    }
+
+loadPdf : String -> Cmd Msg
+loadPdf path =
+    Http.post
+        { url = "/api/viewer/load"
+        , expect = Http.expectWhatever (RemoteData.fromResult >> Loaded)
+        , body = Http.stringBody "application/x-www-form-urlencoded" (urlFormEncodedPdfPath path)
+        }
+
+
 
 -- Have to remove the ? since it appears twice
+
+
 urlFormEncodedPdfPath : String -> String
-urlFormEncodedPdfPath path = String.dropLeft 1 (UrlBuilder.toQuery [ UrlBuilder.string "pdf" path ])
+urlFormEncodedPdfPath path =
+    String.dropLeft 1 (UrlBuilder.toQuery [ UrlBuilder.string "pdf" path ])
 
 
 nextPage : Cmd Msg
 nextPage =
     Http.post
-      { url = "/api/viewer/next"
-      , expect  = Http.expectWhatever (RemoteData.fromResult >> Loaded)
-      , body = Http.emptyBody
-      }
+        { url = "/api/viewer/next"
+        , expect = Http.expectWhatever (RemoteData.fromResult >> Loaded)
+        , body = Http.emptyBody
+        }
+
 
 prevPage : Cmd Msg
 prevPage =
     Http.post
-      { url = "/api/viewer/prev"
-      , expect  = Http.expectWhatever (RemoteData.fromResult >> Loaded)
-      , body = Http.emptyBody
-      }
+        { url = "/api/viewer/prev"
+        , expect = Http.expectWhatever (RemoteData.fromResult >> Loaded)
+        , body = Http.emptyBody
+        }
