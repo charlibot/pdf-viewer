@@ -133,6 +133,10 @@ viewUpDownPage model =
     section [ class "section" ]
         [ div [ class "container" ]
             [ h1 [ class "title" ] [ text model.currentPdf.name ]
+            , p [class "buttons"]
+                [ button [class "button is-large"] [span [class "icon is-large"] [i [class "fas fa-chevron-left fa-2x"] [] ]]
+                , button [class "button is-large"] [span [class "icon is-large"] [i [class "fas fa-chevron-right fa-2x"] [] ]]
+                ]
             ]
         ]
 

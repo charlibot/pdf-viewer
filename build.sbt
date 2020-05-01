@@ -1,3 +1,4 @@
+import ElmKeys.{elmOptions, _}
 // Name of the project
 name := "pdf-elm-viewer"
 
@@ -12,6 +13,9 @@ lazy val CirceVersion = "0.13.0"
 lazy val ZioCatsVersion =  "2.0.0.0-RC12"
 lazy val PureConfigVersion = "0.12.2"
 lazy val LogbackVersion = "1.2.3"
+
+elmOptions := Seq("this is so annoying")
+
 
 // Server dependencies
 libraryDependencies ++= Seq(
@@ -32,10 +36,9 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xcheckinit", "-encoding", 
 
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 
-//enablePlugins(SbtWeb)
+enablePlugins(SbtWeb)
 
-// TODO: This doesn't work the way i want it.
-//import ElmKeys._
-//elmOutput in elmMake := (resourceDirectory in Compile).value / "js" / "elmMain.js"
-//(compile in Compile) := ((compile in Compile) dependsOn elmMake).value
+// TODO: This works but is it the best way to do it?
+elmOutput in elmMake in Assets := (classDirectory in Compile).value / "assets" / "elm.js"
+(compile in Compile) := ((compile in Compile) dependsOn elmMake).value
 
