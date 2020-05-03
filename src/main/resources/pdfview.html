@@ -69,7 +69,7 @@
 
     function loadPdf(pdfUrl) {
         console.log("Loading pdf " + pdfUrl);
-        pdfjsLib.getDocument(pdfUrl).promise.then(function (pdfDocument) {
+        pdfjsLib.getDocument(encodeURI(pdfUrl)).promise.then(function (pdfDocument) {
             pdfViewer.setDocument(pdfDocument);
             var msg = {
                 type: "loaded",
