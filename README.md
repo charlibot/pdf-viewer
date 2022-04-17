@@ -1,6 +1,6 @@
 # PDF viewer and selector
 
-Application that serves three pages, intended to be viewed two, separate devices:
+Application that serves three pages, intended to be viewed on two separate devices:
 
 - A list of PDFs in the configured directory. When a PDF is selected, the page updates to forward and backward buttons.
 - A view of the PDF itself.
