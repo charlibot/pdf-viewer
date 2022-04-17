@@ -4,7 +4,7 @@ import cats.effect.ExitCode
 import com.charlibot.pdfviewer.configuration.Configuration
 import com.charlibot.pdfviewer.http.{Api, Views}
 import com.charlibot.pdfviewer.pdfs.Pdfs
-import com.charlibot.pdfviewer.ui.{FromClient, Ui, ViewerOps}
+import com.charlibot.pdfviewer.ui.{FromClient, ViewerOps}
 import org.http4s.implicits._
 import org.http4s.server.Router
 import org.http4s.server.blaze.BlazeServerBuilder
@@ -17,7 +17,7 @@ import zio.interop.catz._
 
 object Main extends App {
 
-  type AppEnvironment = Configuration with Ui with Clock with Blocking with Pdfs
+  type AppEnvironment = Configuration with Clock with Blocking with Pdfs
 
   type AppTask[A] = RIO[AppEnvironment, A]
 
@@ -28,7 +28,6 @@ object Main extends App {
       api <- configuration.apiConfig
       blockingEC <- blocking.blocking { ZIO.descriptor.map(_.executor.asEC) }
 
-      // TODO: Move to thingy
       queueViewerOps <- fs2.concurrent.Queue.unbounded[Task, ViewerOps]
       queueViewerOpsInput <- fs2.concurrent.Queue.unbounded[Task, FromClient]
 
@@ -49,7 +48,7 @@ object Main extends App {
       }
     } yield server
 
-    program.provideSomeLayer[ZEnv](Configuration.live ++ pdfs ++ Ui.live)foldM(
+    program.provideSomeLayer[ZEnv](Configuration.live ++ pdfs) foldM (
       err => putStrLn(s"Execution failed with: $err") *> IO.succeed(1),
       _ => IO.succeed(0)
     )

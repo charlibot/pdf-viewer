@@ -10,12 +10,14 @@ import zio._
 import zio.interop.catz._
 import io.circe.generic.auto._
 
-final case class Api[R <: Ui with Pdfs](queueViewerOps: fs2.concurrent.Queue[Task, ViewerOps]) {
+final case class Api[R <: Pdfs](queueViewerOps: fs2.concurrent.Queue[Task, ViewerOps]) {
 
   type ApiTask[A] = RIO[R, A]
 
-  implicit def circeJsonDecoder[A](implicit decoder: Decoder[A]): EntityDecoder[ApiTask, A] = jsonOf[ApiTask, A]
-  implicit def circeJsonEncoder[A](implicit decoder: Encoder[A]): EntityEncoder[ApiTask, A] = jsonEncoderOf[ApiTask, A]
+  implicit def circeJsonDecoder[A](implicit decoder: Decoder[A]): EntityDecoder[ApiTask, A] =
+    jsonOf[ApiTask, A]
+  implicit def circeJsonEncoder[A](implicit decoder: Encoder[A]): EntityEncoder[ApiTask, A] =
+    jsonEncoderOf[ApiTask, A]
 
   val dsl: Http4sDsl[ApiTask] = Http4sDsl[ApiTask]
   import dsl._
@@ -37,7 +39,7 @@ final case class Api[R <: Ui with Pdfs](queueViewerOps: fs2.concurrent.Queue[Tas
       case GET -> Root / "pdfs" =>
         listPdfs.foldM(t => InternalServerError(t.getMessage), pdfs => Ok(pdfs))
 
-      case req @ POST -> Root / "viewer"/ "load" =>
+      case req @ POST -> Root / "viewer" / "load" =>
         req
           .decode[UrlForm] { data =>
             data.values.get("pdf").flatMap(_.uncons) match {

@@ -31,11 +31,3 @@ libraryDependencies ++= Seq(
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xcheckinit", "-encoding", "utf8", "-feature")
 
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
-
-enablePlugins(SbtWeb)
-
-// TODO: This works but is it the best way to do it?
-import ElmKeys._
-elmOutput in elmMake in Assets := (classDirectory in Compile).value / "assets" / "elm.js"
-(compile in Compile) := ((compile in Compile) dependsOn elmMake).value
-

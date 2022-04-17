@@ -19,7 +19,8 @@ package object configuration {
     val live: Layer[Throwable, Configuration] = ZLayer.fromEffectMany(
       Task
         .effect(ConfigSource.default.loadOrThrow[AppConfig])
-        .map(c => Has(c.api) ++ Has(c.pdfs)))
+        .map(c => Has(c.api) ++ Has(c.pdfs))
+    )
   }
 
 }

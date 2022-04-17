@@ -25,8 +25,18 @@ package object pdfs {
     private def loadPdfs(basepath: String): Task[List[Pdf]] =
       for {
         dir <- ZIO.effect(FileSystems.getDefault.getPath(basepath))
-        pdfFiles <- ZIO.effect(Files.walk(dir).iterator().asScala.filter(Files.isRegularFile(_)).map(_.toFile).filter(_.getName.endsWith(".pdf")))
-        pdfs = pdfFiles.map(file => Pdf(file.getName, stripBasePath(basepath, file.toString), Map())).toList
+        pdfFiles <- ZIO.effect(
+          Files
+            .walk(dir)
+            .iterator()
+            .asScala
+            .filter(Files.isRegularFile(_))
+            .map(_.toFile)
+            .filter(_.getName.endsWith(".pdf"))
+        )
+        pdfs = pdfFiles
+          .map(file => Pdf(file.getName, stripBasePath(basepath, file.toString), Map()))
+          .toList
       } yield pdfs
 
     val live: ZLayer[Has[PdfsConfig], Throwable, Has[Pdfs.Service]] =

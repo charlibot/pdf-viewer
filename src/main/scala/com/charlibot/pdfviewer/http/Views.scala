@@ -22,11 +22,17 @@ import io.circe.parser._
 
 import scala.concurrent.ExecutionContext
 
-final case class Views[R](viewerOperations: Queue[Task, ViewerOps], queue: Queue[Task, FromClient], blockingEC: ExecutionContext, pdfsPath: String) {
+final case class Views[R](
+    viewerOperations: Queue[Task, ViewerOps],
+    queue: Queue[Task, FromClient],
+    blockingEC: ExecutionContext,
+    pdfsPath: String
+) {
 
   type ViewsTask[A] = RIO[R, A]
 
-  implicit val customConfig: Configuration = Configuration.default.withDefaults.withDiscriminator("type").withKebabCaseConstructorNames
+  implicit val customConfig: Configuration =
+    Configuration.default.withDefaults.withDiscriminator("type").withKebabCaseConstructorNames
 
   val dsl: Http4sDsl[ViewsTask] = Http4sDsl[ViewsTask]
   import dsl._
@@ -34,30 +40,40 @@ final case class Views[R](viewerOperations: Queue[Task, ViewerOps], queue: Queue
   def views: HttpRoutes[ViewsTask] = {
     HttpRoutes.of[ViewsTask] {
       case request @ GET -> Root =>
-        StaticFile.fromResource("index.html", Blocker.liftExecutionContext(blockingEC), Some(request))
+        StaticFile
+          .fromResource("index.html", Blocker.liftExecutionContext(blockingEC), Some(request))
           .getOrElseF(NotFound())
       case request @ GET -> Root / "viewer" =>
-        StaticFile.fromResource("pdfview.html", Blocker.liftExecutionContext(blockingEC), Some(request))
+        StaticFile
+          .fromResource("pdfview.html", Blocker.liftExecutionContext(blockingEC), Some(request))
           .getOrElseF(NotFound())
       case GET -> Root / "viewer-ops" =>
         val toClient: Stream[ViewsTask, WebSocketFrame.Text] =
-          viewerOperations
-            .dequeue
+          viewerOperations.dequeue
             .map(msg => Text(msg.asJson.toString))
 
         def processInput(wsfStream: Stream[ViewsTask, WebSocketFrame]): Stream[ViewsTask, Unit] = {
-          wsfStream.collect {
-            case Text(text, _) => decode[FromClient](text)
-          }.collect { case Right(r) => r }.through(queue.asInstanceOf[Queue[ViewsTask, FromClient]].enqueue) // TODO: Fix this asInstanceOf - EURGH
+          wsfStream
+            .collect { case Text(text, _) =>
+              decode[FromClient](text)
+            }
+            .collect { case Right(r) => r }
+            .through(
+              queue.asInstanceOf[Queue[ViewsTask, FromClient]].enqueue
+            ) // TODO: Fix this asInstanceOf - EURGH
         }
 
         WebSocketBuilder[ViewsTask].build(toClient, processInput)
     }
   }
 
-  val assets = resourceService[ViewsTask](ResourceService.Config("assets", Blocker.liftExecutionContext(blockingEC)))
+  val assets = resourceService[ViewsTask](
+    ResourceService.Config("assets", Blocker.liftExecutionContext(blockingEC))
+  )
 
-  val pdfs = fileService[ViewsTask](FileService.Config(pdfsPath, Blocker.liftExecutionContext(blockingEC), "/pdfs"))
+  val pdfs = fileService[ViewsTask](
+    FileService.Config(pdfsPath, Blocker.liftExecutionContext(blockingEC), "/pdfs")
+  )
 
   val route = views <+> assets <+> pdfs
 
